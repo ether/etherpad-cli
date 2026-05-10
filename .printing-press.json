@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-10T12:26:46.830405462Z",
+  "printing_press_version": "4.2.2",
+  "api_name": "etherpad",
+  "display_name": "Etherpad",
+  "cli_name": "etherpad-pp-cli",
+  "owner": "john-mclear",
+  "printer": "JohnMcLear",
+  "printer_name": "John McLear",
+  "spec_url": "https://pad-dev.etherpad.org/api/openapi.json",
+  "spec_path": "/tmp/openapi-cleaned.json",
+  "spec_format": "openapi3",
+  "spec_checksum": "sha256:2103bf60579760cd247141165c26ba5e37ab3cbd0ed7034ee550571c2e275b2b",
+  "mcp_binary": "etherpad-pp-mcp",
+  "mcp_tool_count": 50,
+  "mcp_ready": "full",
+  "api_version": "1.3.1",
+  "auth_type": "bearer_token",
+  "auth_env_vars": [
+    "ETHERPAD_OPENID"
+  ]
+}
