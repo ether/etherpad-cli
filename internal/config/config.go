@@ -155,20 +155,21 @@ func (c *Config) SaveTokens(clientID, clientSecret, accessToken, refreshToken st
 	return c.save()
 }
 
-// ClearTokens wipes every auth-related field — including ones populated
-// from $ETHERPAD_OPENID and the static AuthHeaderVal — so a `logout`
-// followed by another command in the same process honours the logout
-// instead of letting AuthHeader() pick the env token back up. The
-// on-disk persistence side of the same bug is handled in save(), which
-// declines to marshal env-derived openid values back to the config file.
+// ClearTokens wipes the OAuth-issued credentials and persists the clear.
+// Static `auth_header` and `openid` set directly in the user's config
+// file are NOT cleared here — they are user-managed persistent
+// credentials, not OAuth login state, and the TOML tags carry no
+// `omitempty`, so zeroing them would write `auth_header = ""` /
+// `openid = ""` back to disk and permanently destroy a manually-set
+// API key. Logout for an env-var-only user does not unset
+// $ETHERPAD_OPENID either; that has to happen in the parent shell. The
+// env-derived token still does not leak to disk on this save() call —
+// save() snapshots and zeros env-loaded EtherpadOpenid around
+// toml.Marshal.
 func (c *Config) ClearTokens() error {
 	c.AccessToken = ""
 	c.RefreshToken = ""
 	c.TokenExpiry = time.Time{}
-	c.ClientID = ""
-	c.ClientSecret = ""
-	c.EtherpadOpenid = ""
-	c.AuthHeaderVal = ""
 	return c.save()
 }
 
