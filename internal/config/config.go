@@ -68,7 +68,11 @@ func (c *Config) TokenURL() string {
 
 func Load(configPath string) (*Config, error) {
 	cfg := &Config{
-		BaseURL: "http://pad-dev.etherpad.org/api/1.3.1",
+		// Default to HTTPS so a user who never sets $ETHERPAD_BASE_URL
+		// doesn't transmit their bearer token in cleartext.
+		// pad-dev.etherpad.org serves over TLS; local development
+		// instances on plain HTTP set $ETHERPAD_BASE_URL explicitly.
+		BaseURL: "https://pad-dev.etherpad.org/api/1.3.1",
 	}
 
 	// Resolve config path
