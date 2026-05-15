@@ -198,7 +198,12 @@ func newAuthStatusCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			w := cmd.OutOrStdout()
-			authed := cfg.AccessToken != ""
+			// Mirror AuthHeader()'s credential precedence inline so users
+			// who auth via $ETHERPAD_OPENID or a TOML-set auth_header are
+			// not reported as unauthenticated. Calling AuthHeader() directly
+			// would overwrite cfg.AuthSource (it labels the call-site path),
+			// shadowing the more precise value Load() set.
+			authed := cfg.AuthHeaderVal != "" || cfg.EtherpadOpenid != "" || cfg.AccessToken != ""
 			// JSON envelope: {authenticated, verified, source, config}.
 			if flags.asJSON {
 				out := map[string]any{
