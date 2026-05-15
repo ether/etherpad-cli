@@ -372,10 +372,11 @@ func (c *Client) refreshAccessToken() error {
 		return nil
 	}
 
-	tokenURL := "http://localhost:9001/oidc/token"
-	if tokenURL == "" {
-		return nil
-	}
+	// Derived from cfg.BaseURL (or cfg.OIDCIssuer if set); falls back to
+	// localhost:9001 only if BaseURL is unparseable. The dead `if tokenURL
+	// == ""` guard that used to live here was a leftover from a planned
+	// OIDC-discovery lookup that never landed — replaced by the helper.
+	tokenURL := c.Config.TokenURL()
 
 	params := url.Values{
 		"grant_type":    {"refresh_token"},
@@ -414,6 +415,8 @@ func (c *Client) refreshAccessToken() error {
 		refreshToken = tokenResp.RefreshToken
 	}
 
+	// Parallel guard to auth.go's token-exchange path — refresh stays
+	// robust when the server returns expires_in == 0 or omits the field.
 	expiry := time.Time{}
 	if tokenResp.ExpiresIn > 0 {
 		expiry = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)

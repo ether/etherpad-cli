@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 type Config struct {
 	BaseURL        string `toml:"base_url"`
+	OIDCIssuer     string `toml:"oidc_issuer,omitempty"`
 	AuthHeaderVal  string `toml:"auth_header"`
 	Headers        map[string]string `toml:"headers,omitempty"`
 	AuthSource     string `toml:"-"`
@@ -27,9 +29,40 @@ type Config struct {
 	EtherpadOpenid string `toml:"openid"`
 }
 
+// oidcBase returns the host root for OIDC URLs: explicit OIDCIssuer if set,
+// otherwise scheme://host parsed from BaseURL. Empty string if BaseURL is
+// unparseable, in which case callers fall back to the literal default.
+func (c *Config) oidcBase() string {
+	if c.OIDCIssuer != "" {
+		return strings.TrimRight(c.OIDCIssuer, "/")
+	}
+	if u, err := url.Parse(c.BaseURL); err == nil && u.Scheme != "" && u.Host != "" {
+		return u.Scheme + "://" + u.Host
+	}
+	return ""
+}
+
+// AuthURL returns the OIDC authorization endpoint for `auth login`.
+// Defaults to http://localhost:9001/oidc/auth only when BaseURL is unset/unparseable.
+func (c *Config) AuthURL() string {
+	if base := c.oidcBase(); base != "" {
+		return base + "/oidc/auth"
+	}
+	return "http://localhost:9001/oidc/auth"
+}
+
+// TokenURL returns the OIDC token endpoint for code exchange and refresh.
+// Defaults to http://localhost:9001/oidc/token only when BaseURL is unset/unparseable.
+func (c *Config) TokenURL() string {
+	if base := c.oidcBase(); base != "" {
+		return base + "/oidc/token"
+	}
+	return "http://localhost:9001/oidc/token"
+}
+
 func Load(configPath string) (*Config, error) {
 	cfg := &Config{
-		BaseURL: "http://localhost:9005/api/1.3.1",
+		BaseURL: "http://pad-dev.etherpad.org/api/1.3.1",
 	}
 
 	// Resolve config path
@@ -76,6 +109,11 @@ func Load(configPath string) (*Config, error) {
 	if v := os.Getenv("ETHERPAD_BASE_URL"); v != "" {
 		cfg.BaseURL = v
 	}
+	// OIDC issuer override for deployments where the OIDC provider isn't
+	// hosted at the same scheme://host as the API.
+	if v := os.Getenv("ETHERPAD_OIDC_ISSUER"); v != "" {
+		cfg.OIDCIssuer = v
+	}
 	return cfg, nil
 }
 
@@ -117,10 +155,20 @@ func (c *Config) SaveTokens(clientID, clientSecret, accessToken, refreshToken st
 	return c.save()
 }
 
+// ClearTokens wipes every auth-related field — including ones populated
+// from $ETHERPAD_OPENID and the static AuthHeaderVal — so a `logout`
+// followed by another command in the same process honours the logout
+// instead of letting AuthHeader() pick the env token back up. The
+// on-disk persistence side of the same bug is handled in save(), which
+// declines to marshal env-derived openid values back to the config file.
 func (c *Config) ClearTokens() error {
 	c.AccessToken = ""
 	c.RefreshToken = ""
 	c.TokenExpiry = time.Time{}
+	c.ClientID = ""
+	c.ClientSecret = ""
+	c.EtherpadOpenid = ""
+	c.AuthHeaderVal = ""
 	return c.save()
 }
 
@@ -129,9 +177,26 @@ func (c *Config) save() error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
-	data, err := toml.Marshal(c)
-	if err != nil {
-		return fmt.Errorf("marshaling config: %w", err)
+
+	// Snapshot + zero env-derived fields so they don't get marshaled to
+	// disk. AuthSource is the durable signal of where each field came
+	// from (set in Load() and not persisted via TOML tag `-`); restoring
+	// the snapshot after marshal keeps the running process's in-memory
+	// state intact for subsequent AuthHeader() calls in the same run.
+	envOpenid := ""
+	if c.AuthSource == "env:ETHERPAD_OPENID" {
+		envOpenid = c.EtherpadOpenid
+		c.EtherpadOpenid = ""
+	}
+
+	data, marshalErr := toml.Marshal(c)
+
+	if envOpenid != "" {
+		c.EtherpadOpenid = envOpenid
+	}
+
+	if marshalErr != nil {
+		return fmt.Errorf("marshaling config: %w", marshalErr)
 	}
 	return os.WriteFile(c.Path, data, 0o600)
 }

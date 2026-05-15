@@ -67,7 +67,7 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 
 			redirectURI := fmt.Sprintf("http://localhost:%d/callback", listener.Addr().(*net.TCPAddr).Port)
 
-			authURL := "http://localhost:9001/oidc/auth"
+			authURL := cfg.AuthURL()
 			params := url.Values{
 				"client_id":     {clientID},
 				"redirect_uri":  {redirectURI},
@@ -126,7 +126,7 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 
 			server.Shutdown(context.Background())
 
-			tokenURL := "http://localhost:9001/oidc/token"
+			tokenURL := cfg.TokenURL()
 			tokenParams := url.Values{
 				"grant_type":   {"authorization_code"},
 				"code":         {code},
@@ -164,7 +164,13 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 				return fmt.Errorf("no access token in response")
 			}
 
-			expiry := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+			// Match refreshAccessToken's guard: zero-or-missing expires_in is
+			// non-conformant but possible. Storing time.Now() as expiry would
+			// trip authHeader's "expired" check on every subsequent request.
+			expiry := time.Time{}
+			if tokenResp.ExpiresIn > 0 {
+				expiry = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+			}
 			if err := cfg.SaveTokens(clientID, clientSecret, tokenResp.AccessToken, tokenResp.RefreshToken, expiry); err != nil {
 				return fmt.Errorf("saving tokens: %w", err)
 			}
