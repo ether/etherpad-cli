@@ -55,6 +55,11 @@ and full resync. After archiving, use 'search' for instant full-text search.`,
 			}
 			defer s.Close()
 
+			// Empty resource list for the same reason `sync` ships empty —
+			// Etherpad's RPC-shaped API returns scalar IDs from every list
+			// endpoint, and `workflow archive` is built on the same sync
+			// machinery. Until a per-API fan-out adapter is wired in,
+			// `workflow archive` exits 0 with 0 resources archived.
 			resources := []string{ }
 			totalSynced := 0
 

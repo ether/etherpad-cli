@@ -175,7 +175,14 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 				return fmt.Errorf("saving tokens: %w", err)
 			}
 
-			fmt.Fprintf(os.Stderr, "%s Authentication successful! Token expires at %s\n", green("OK"), expiry.Format(time.RFC3339))
+			// Mirror the ExpiresIn==0 guard above: don't print the Go zero
+			// time (0001-01-01T00:00:00Z) — it reads as a real future
+			// timestamp to inexperienced users.
+			if expiry.IsZero() {
+				fmt.Fprintf(os.Stderr, "%s Authentication successful! (server returned no token expiry)\n", green("OK"))
+			} else {
+				fmt.Fprintf(os.Stderr, "%s Authentication successful! Token expires at %s\n", green("OK"), expiry.Format(time.RFC3339))
+			}
 			return nil
 		},
 	}
