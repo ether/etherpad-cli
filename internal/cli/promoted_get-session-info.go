@@ -32,6 +32,10 @@ func newGetSessionInfoPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
+			if flagSessionID != "" {
+				body["sessionID"] = flagSessionID
+			}
 			data, _, err := c.Post(path, body)
 			prov := attachFreshness(DataProvenance{Source: "live"}, flags)
 			if err != nil {

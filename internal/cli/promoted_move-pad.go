@@ -34,6 +34,16 @@ func newMovePadPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
+			if flagSourceID != "" {
+				body["sourceID"] = flagSourceID
+			}
+			if flagDestinationID != "" {
+				body["destinationID"] = flagDestinationID
+			}
+			if flagForce != "" {
+				body["force"] = flagForce
+			}
 			data, _, err := c.Post(path, body)
 			prov := attachFreshness(DataProvenance{Source: "live"}, flags)
 			if err != nil {

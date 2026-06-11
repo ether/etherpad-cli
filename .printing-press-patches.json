@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "applied_at": "2026-06-11",
+  "base_run_id": "",
+  "base_printing_press_version": "4.2.2",
+  "patches": [
+    {
+      "id": "promoted-body-serialization",
+      "summary": "Serialize each promoted command's bound flags into the POST request body (and omit unset flags).",
+      "reason": "The generated promoted_*.go template built `body := map[string]any{}` and called c.Post(path, body) without ever copying the bound flag variables in, so every parameterized command (get-text, set-text, copy-pad, ...) sent an empty {} body and the API rejected it with 'padID is not a string' etc. No-arg endpoints were unaffected.",
+      "files": [
+        "internal/cli/promoted_*.go (45 parameterized commands)"
+      ],
+      "validated_outcome": "go test ./internal/cli (TestPromotedSerializesFlagsIntoBody / TestPromotedOmitsEmptyFlags) plus a binary smoke test confirm e.g. set-text now sends {\"padID\":...,\"text\":...,\"authorId\":...}; per-endpoint API casing (authorId vs authorID) is taken from spec.json.",
+      "upstream_issue": "https://github.com/mvanhorn/cli-printing-press (promoted-command template must populate the request body from registered flags)"
+    }
+  ]
+}

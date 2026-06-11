@@ -33,6 +33,13 @@ func newGetHtmlPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
+			if flagPadID != "" {
+				body["padID"] = flagPadID
+			}
+			if flagRev != "" {
+				body["rev"] = flagRev
+			}
 			data, _, err := c.Post(path, body)
 			prov := attachFreshness(DataProvenance{Source: "live"}, flags)
 			if err != nil {
