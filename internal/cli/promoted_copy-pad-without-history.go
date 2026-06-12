@@ -35,6 +35,20 @@ func newCopyPadWithoutHistoryPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body.
+			// Changed() (not value != "") so an explicit empty string is still sent.
+			if cmd.Flags().Changed("source-id") {
+				body["sourceID"] = flagSourceID
+			}
+			if cmd.Flags().Changed("destination-id") {
+				body["destinationID"] = flagDestinationID
+			}
+			if cmd.Flags().Changed("force") {
+				body["force"] = flagForce
+			}
+			if cmd.Flags().Changed("author-id") {
+				body["authorId"] = flagAuthorId
+			}
 			data, _, err := c.Post(path, body)
 			prov := attachFreshness(DataProvenance{Source: "live"}, flags)
 			if err != nil {

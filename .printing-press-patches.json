@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "applied_at": "2026-06-11",
+  "base_run_id": "",
+  "base_printing_press_version": "4.2.2",
+  "patches": [
+    {
+      "id": "promoted-body-serialization",
+      "summary": "Serialize each promoted command's set flags into the POST request body, keyed off cobra's Changed() so an explicit empty string is still sent while unset flags are omitted.",
+      "reason": "The generated promoted_*.go template built `body := map[string]any{}` and called c.Post(path, body) without ever copying the bound flag variables in, so every parameterized command (get-text, set-text, copy-pad, ...) sent an empty {} body and the API rejected it with 'padID is not a string' etc. No-arg endpoints were unaffected. Gating on Changed() rather than value != \"\" keeps legitimate empty-string operations (e.g. set-text --text \"\" to clear a pad) working.",
+      "files": [
+        "internal/cli/promoted_*.go (45 parameterized commands)"
+      ],
+      "validated_outcome": "go test ./internal/cli (TestPromotedSerializesFlagsIntoBody / TestPromotedOmitsUnsetFlags / TestPromotedKeepsExplicitEmptyFlags) plus a binary smoke test confirm set-text now sends {\"padID\":...,\"text\":...,\"authorId\":...}, set-text --text \"\" still sends \"text\":\"\", and unset optional flags stay out of the body; per-endpoint API casing (authorId vs authorID) is taken from spec.json.",
+      "upstream_issue": "https://github.com/mvanhorn/cli-printing-press/issues/2607 (generator: registered flags never wired into the request on non-GET commands; Etherpad confirmed as a second affected API — needs body-sink wiring + spec-derived param casing)"
+    }
+  ]
+}
