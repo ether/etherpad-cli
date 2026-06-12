@@ -33,11 +33,12 @@ func newCreateAuthorIfNotExistsForPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
-			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
-			if flagAuthorMapper != "" {
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body.
+			// Changed() (not value != "") so an explicit empty string is still sent.
+			if cmd.Flags().Changed("author-mapper") {
 				body["authorMapper"] = flagAuthorMapper
 			}
-			if flagName != "" {
+			if cmd.Flags().Changed("name") {
 				body["name"] = flagName
 			}
 			data, _, err := c.Post(path, body)

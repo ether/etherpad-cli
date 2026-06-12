@@ -35,17 +35,18 @@ func newAppendChatMessagePromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
-			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
-			if flagPadID != "" {
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body.
+			// Changed() (not value != "") so an explicit empty string is still sent.
+			if cmd.Flags().Changed("pad-id") {
 				body["padID"] = flagPadID
 			}
-			if flagText != "" {
+			if cmd.Flags().Changed("text") {
 				body["text"] = flagText
 			}
-			if flagAuthorID != "" {
+			if cmd.Flags().Changed("author-id") {
 				body["authorID"] = flagAuthorID
 			}
-			if flagTime != "" {
+			if cmd.Flags().Changed("time") {
 				body["time"] = flagTime
 			}
 			data, _, err := c.Post(path, body)

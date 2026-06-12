@@ -34,14 +34,15 @@ func newGetChatHistoryPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
-			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
-			if flagPadID != "" {
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body.
+			// Changed() (not value != "") so an explicit empty string is still sent.
+			if cmd.Flags().Changed("pad-id") {
 				body["padID"] = flagPadID
 			}
-			if flagStart != "" {
+			if cmd.Flags().Changed("start") {
 				body["start"] = flagStart
 			}
-			if flagEnd != "" {
+			if cmd.Flags().Changed("end") {
 				body["end"] = flagEnd
 			}
 			data, _, err := c.Post(path, body)

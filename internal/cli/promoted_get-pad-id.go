@@ -32,8 +32,9 @@ func newGetPadIdPromotedCmd(flags *rootFlags) *cobra.Command {
 			// body-aware cached read helper is filed as #425 for when a
 			// second store-backed POST-search consumer ships.
 			body := map[string]any{}
-			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body
-			if flagRoID != "" {
+			// PATCH(ether/etherpad-cli#1): serialize bound flags into request body.
+			// Changed() (not value != "") so an explicit empty string is still sent.
+			if cmd.Flags().Changed("ro-id") {
 				body["roID"] = flagRoID
 			}
 			data, _, err := c.Post(path, body)

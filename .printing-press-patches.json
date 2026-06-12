@@ -6,12 +6,12 @@
   "patches": [
     {
       "id": "promoted-body-serialization",
-      "summary": "Serialize each promoted command's bound flags into the POST request body (and omit unset flags).",
-      "reason": "The generated promoted_*.go template built `body := map[string]any{}` and called c.Post(path, body) without ever copying the bound flag variables in, so every parameterized command (get-text, set-text, copy-pad, ...) sent an empty {} body and the API rejected it with 'padID is not a string' etc. No-arg endpoints were unaffected.",
+      "summary": "Serialize each promoted command's set flags into the POST request body, keyed off cobra's Changed() so an explicit empty string is still sent while unset flags are omitted.",
+      "reason": "The generated promoted_*.go template built `body := map[string]any{}` and called c.Post(path, body) without ever copying the bound flag variables in, so every parameterized command (get-text, set-text, copy-pad, ...) sent an empty {} body and the API rejected it with 'padID is not a string' etc. No-arg endpoints were unaffected. Gating on Changed() rather than value != \"\" keeps legitimate empty-string operations (e.g. set-text --text \"\" to clear a pad) working.",
       "files": [
         "internal/cli/promoted_*.go (45 parameterized commands)"
       ],
-      "validated_outcome": "go test ./internal/cli (TestPromotedSerializesFlagsIntoBody / TestPromotedOmitsEmptyFlags) plus a binary smoke test confirm e.g. set-text now sends {\"padID\":...,\"text\":...,\"authorId\":...}; per-endpoint API casing (authorId vs authorID) is taken from spec.json.",
+      "validated_outcome": "go test ./internal/cli (TestPromotedSerializesFlagsIntoBody / TestPromotedOmitsUnsetFlags / TestPromotedKeepsExplicitEmptyFlags) plus a binary smoke test confirm set-text now sends {\"padID\":...,\"text\":...,\"authorId\":...}, set-text --text \"\" still sends \"text\":\"\", and unset optional flags stay out of the body; per-endpoint API casing (authorId vs authorID) is taken from spec.json.",
       "upstream_issue": "https://github.com/mvanhorn/cli-printing-press (promoted-command template must populate the request body from registered flags)"
     }
   ]

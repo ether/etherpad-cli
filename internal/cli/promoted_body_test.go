@@ -113,10 +113,10 @@ func TestPromotedSerializesFlagsIntoBody(t *testing.T) {
 	}
 }
 
-// TestPromotedOmitsEmptyFlags confirms unset flags are not serialized, so
-// optional parameters (e.g. create-pad without a padID) don't send empty
-// strings the server would reject.
-func TestPromotedOmitsEmptyFlags(t *testing.T) {
+// TestPromotedOmitsUnsetFlags confirms flags the user never passed are not
+// serialized, so optional parameters (e.g. get-text without --rev) don't send
+// empty strings the server would reject.
+func TestPromotedOmitsUnsetFlags(t *testing.T) {
 	srv, gotPath, gotBody := captureServer(t)
 	runPromoted(t, srv.URL, "get-text", "--pad-id", "mypad")
 
@@ -128,5 +128,29 @@ func TestPromotedOmitsEmptyFlags(t *testing.T) {
 	}
 	if (*gotBody)["padID"] != "mypad" {
 		t.Errorf("body[padID]: want mypad, got %v", (*gotBody)["padID"])
+	}
+}
+
+// TestPromotedKeepsExplicitEmptyFlags confirms a flag the user explicitly set
+// to an empty string IS serialized. Clearing a pad with `set-text --text ""`
+// is a legitimate operation; dropping the empty value would make the server
+// reject it with "text is not a string". The distinction between "unset" and
+// "explicitly empty" is taken from cobra's Changed(), not the value itself.
+func TestPromotedKeepsExplicitEmptyFlags(t *testing.T) {
+	srv, gotPath, gotBody := captureServer(t)
+	runPromoted(t, srv.URL, "set-text", "--pad-id", "mypad", "--text", "")
+
+	if *gotPath != "/setText" {
+		t.Fatalf("path: want /setText, got %s", *gotPath)
+	}
+	got, ok := (*gotBody)["text"]
+	if !ok {
+		t.Errorf("explicit --text \"\" should be present in body, got %v", *gotBody)
+	} else if got != "" {
+		t.Errorf("body[text]: want empty string, got %v", got)
+	}
+	// author-id was never passed, so it must stay out of the body.
+	if _, ok := (*gotBody)["authorId"]; ok {
+		t.Errorf("unset --author-id should be omitted, got %v", *gotBody)
 	}
 }
