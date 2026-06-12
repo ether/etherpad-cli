@@ -12,7 +12,7 @@
         "internal/cli/promoted_*.go (45 parameterized commands)"
       ],
       "validated_outcome": "go test ./internal/cli (TestPromotedSerializesFlagsIntoBody / TestPromotedOmitsUnsetFlags / TestPromotedKeepsExplicitEmptyFlags) plus a binary smoke test confirm set-text now sends {\"padID\":...,\"text\":...,\"authorId\":...}, set-text --text \"\" still sends \"text\":\"\", and unset optional flags stay out of the body; per-endpoint API casing (authorId vs authorID) is taken from spec.json.",
-      "upstream_issue": "https://github.com/mvanhorn/cli-printing-press (promoted-command template must populate the request body from registered flags)"
+      "upstream_issue": "https://github.com/mvanhorn/cli-printing-press/issues/2607 (generator: registered flags never wired into the request on non-GET commands; Etherpad confirmed as a second affected API — needs body-sink wiring + spec-derived param casing)"
     }
   ]
 }
